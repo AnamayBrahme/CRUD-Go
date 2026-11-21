@@ -1,13 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
+
+var services = make(map[int]Service)
 
 func main() {
 
-	// Create temporary storage.
-	services := make(map[int]Service)
-
-	// CREATE
+	// Add example services.
 	createService(services, Service{
 		ID:          1,
 		Name:        "Cloud Monitor",
@@ -21,20 +23,41 @@ func main() {
 		Environment: "Production",
 		Status:      "Stopped",
 	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 
-	// READ
-	fmt.Println("\nAll Services:")
-	listServices(services)
+		http.ServeFile(w, r, "index.html")
+	})
 
-	// UPDATE
-	fmt.Println("\nUpdating Service 1:")
-	updateService(services, 1, "Stopped")
+	// Register CRUD routes.
+	http.HandleFunc("/services", func(w http.ResponseWriter, r *http.Request) {
 
-	// DELETE
-	fmt.Println("\nDeleting Service 2:")
-	deleteService(services, 2)
+		switch r.Method {
+		case http.MethodGet:
+			getServicesHandler(w, r)
 
-	// READ AGAIN
-	fmt.Println("\nRemaining Services:")
-	listServices(services)
+		case http.MethodPost:
+			createServiceHandler(w, r)
+
+		case http.MethodPut:
+			updateServiceHandler(w, r)
+
+		case http.MethodDelete:
+			deleteServiceHandler(w, r)
+
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	fmt.Println("Server running at http://localhost:8080")
+
+	err := http.ListenAndServe(":8083", nil)
+
+	if err != nil {
+		fmt.Println("Server error:", err)
+	}
 }

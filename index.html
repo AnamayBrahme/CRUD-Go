@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD-Go | Service Manager</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            color: #26364a;
+        }
+
+        input, select, button {
+            padding: 10px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        input, select {
+            width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #2563eb;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #dc2626;
+            margin-left: 5px;
+        }
+
+        .service {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 6px;
+        }
+
+        #message {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>CRUD-Go Service Manager</h1>
+    <p>Manage your cloud services.</p>
+
+    <h2>Add or Update Service</h2>
+
+    <form id="serviceForm">
+
+        <input type="number" id="serviceID"
+            placeholder="Service ID" required>
+
+        <input type="text" id="serviceName"
+            placeholder="Service Name" required>
+
+        <select id="environment">
+            <option value="Development">Development</option>
+            <option value="Staging">Staging</option>
+            <option value="Production">Production</option>
+        </select>
+
+        <select id="status">
+            <option value="Running">Running</option>
+            <option value="Stopped">Stopped</option>
+            <option value="Degraded">Degraded</option>
+        </select>
+
+        <button type="submit" id="submitButton">
+            Add Service
+        </button>
+
+        <button type="button" id="cancelButton">
+            Clear Form
+        </button>
+
+    </form>
+
+    <p id="message"></p>
+
+    <hr>
+
+    <h2>Available Services</h2>
+
+    <div id="serviceList"></div>
+
+</div>
+
+<script>
+
+    const form = document.getElementById("serviceForm");
+    const serviceList = document.getElementById("serviceList");
+    const message = document.getElementById("message");
+
+    let editingID = null;
+
+    // READ: Get all services.
+    async function loadServices() {
+
+        const response = await fetch("/services");
+        const services = await response.json();
+
+        serviceList.innerHTML = "";
+
+        services.forEach(service => {
+
+            const div = document.createElement("div");
+            div.className = "service";
+
+            const details = document.createElement("p");
+            details.textContent =
+                `ID: ${service.id} | Name: ${service.name} | ` +
+                `Environment: ${service.environment} | Status: ${service.status}`;
+
+            const editButton = document.createElement("button");
+            editButton.textContent = "Edit";
+            editButton.onclick = () => editService(service);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.className = "delete-btn";
+            deleteButton.onclick = () => deleteService(service.id);
+
+            div.appendChild(details);
+            div.appendChild(editButton);
+            div.appendChild(deleteButton);
+
+            serviceList.appendChild(div);
+        });
+    }
+
+    // CREATE and UPDATE: Submit the form.
+    form.addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const service = {
+            id: Number(document.getElementById("serviceID").value),
+            name: document.getElementById("serviceName").value,
+            environment: document.getElementById("environment").value,
+            status: document.getElementById("status").value
+        };
+
+        const method = editingID === null ? "POST" : "PUT";
+
+        const url = editingID === null
+            ? "/services"
+            : `/services?id=${editingID}`;
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(service)
+        });
+
+        if (response.ok) {
+            message.textContent = editingID === null
+                ? "Service created successfully!"
+                : "Service updated successfully!";
+
+            clearForm();
+            loadServices();
+        } else {
+            message.textContent = await response.text();
+        }
+    });
+
+    // Load service details into the form.
+    function editService(service) {
+
+        editingID = service.id;
+
+        document.getElementById("serviceID").value = service.id;
+        document.getElementById("serviceID").disabled = true;
+
+        document.getElementById("serviceName").value = service.name;
+        document.getElementById("environment").value = service.environment;
+        document.getElementById("status").value = service.status;
+
+        document.getElementById("submitButton").textContent = "Update Service";
+    }
+
+    // DELETE: Remove a service.
+    async function deleteService(id) {
+
+        const response = await fetch(`/services?id=${id}`, {
+            method: "DELETE"
+        });
+
+        if (response.ok) {
+            message.textContent = "Service deleted successfully!";
+            loadServices();
+        } else {
+            message.textContent = await response.text();
+        }
+    }
+
+    // Clear the form.
+    function clearForm() {
+
+        form.reset();
+
+        editingID = null;
+
+        document.getElementById("serviceID").disabled = false;
+        document.getElementById("submitButton").textContent = "Add Service";
+    }
+
+    document.getElementById("cancelButton").addEventListener("click", clearForm);
+
+    // Load services when the page opens.
+    loadServices();
+
+</script>
+
+</body>
+</html>

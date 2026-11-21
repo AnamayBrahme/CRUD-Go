@@ -2,12 +2,11 @@ package main
 
 import "fmt"
 
-// Service represents a cloud service.
 type Service struct {
-	ID          int
-	Name        string
-	Environment string
-	Status      string
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Environment string `json:"environment"`
+	Status      string `json:"status"`
 }
 
 // CREATE
@@ -17,40 +16,38 @@ func createService(services map[int]Service, service Service) {
 }
 
 // READ
-func listServices(services map[int]Service) {
+func listServices(services map[int]Service) []Service {
+	var result []Service
+
 	for _, service := range services {
-		fmt.Println("--------------------")
-		fmt.Println("ID:", service.ID)
-		fmt.Println("Name:", service.Name)
-		fmt.Println("Environment:", service.Environment)
-		fmt.Println("Status:", service.Status)
+		result = append(result, service)
 	}
+
+	return result
 }
 
 // UPDATE
-func updateService(services map[int]Service, id int, newStatus string) {
-	service, exists := services[id]
-
-	if !exists {
-		fmt.Println("Service not found!")
-		return
-	}
-
-	service.Status = newStatus
-	services[id] = service
-
-	fmt.Println("Service updated successfully!")
-}
-
-// DELETE
-func deleteService(services map[int]Service, id int) {
+func updateService(services map[int]Service, id int, newService Service) bool {
 	_, exists := services[id]
 
 	if !exists {
-		fmt.Println("Service not found!")
-		return
+		return false
+	}
+
+	newService.ID = id
+	services[id] = newService
+
+	return true
+}
+
+// DELETE
+func deleteService(services map[int]Service, id int) bool {
+	_, exists := services[id]
+
+	if !exists {
+		return false
 	}
 
 	delete(services, id)
-	fmt.Println("Service deleted successfully!")
+	return true
 }
